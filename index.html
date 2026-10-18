@@ -138,7 +138,38 @@
           </button>
         </form>
       </section>
-      <section class="panel records-panel"></section>
+
+      <section class="panel records-panel">
+        <header class="records-header">
+          <div>
+            <h2 id="record-title" class="panel-title">Sensor log history</h2>
+            <p class="panel-description">Bay telemetry readings history</p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            id="btn-clear-all"
+            disabled
+          >
+            Purge Logs
+          </button>
+        </header>
+
+        <div class="legend">
+            <span><i class="legend-dot optimal"></i> Optimal</span>
+            <span><i class="legend-dot warning"></i> Warning</span>
+            <span><i class="legend-dot critical"></i> Critial Hazard</span>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+            <span class="empty-icon">🌱</span>
+            <h3>No Readings Recorded Yet</h3>
+            <p>Complete the sensor form to begin monitoring your greenhouse enviorment.</p>
+        </div>
+
+        <ul id="records-list" class="records-grid" aria-live="polite"></ul>
+
+      </section>
     </main>
 
     <!-- Footer -->
