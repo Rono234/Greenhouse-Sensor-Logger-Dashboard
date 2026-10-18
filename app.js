@@ -123,6 +123,34 @@
   }
 
   //   add a function for instant feedback
+  function updateFieldState(input) {
+    const rule = limits[input.id];
+    const hint = document.getElementById(`${input.id}-hint`);
+    input.classList.remove("valid", "warning", "critical", "invalid");
+    input.removeAttribute("aria-invalid");
+
+    if (input.value.trim() === "") {
+      hint.textContent = rule.hint;
+      return;
+    }
+
+    const value = Number(input.value);
+    if (!input.validity.valid || !Number.isFinite(value)) {
+      input.classList.add("invalid");
+      input.setAttribute("aria-invalid", "true");
+      hint.textContent = "Invalid value — check the allowed input limits.";
+    } else if (value < rule.criticalMin || value > rule.criticalMax) {
+      input.classList.add("critical");
+      hint.textContent =
+        "Outside critical threshold (reading can still be recorded).";
+    } else if (value < rule.optimalMin || value > rule.optimalMax) {
+      input.classList.add("warning");
+      hint.textContent = "Outside optimal plant growth range.";
+    } else {
+      input.classList.add("valid");
+      hint.textContent = "Within optimal growth range.";
+    }
+  }
 
   function render() {
     queueCount.textContent = records.length;
@@ -195,4 +223,81 @@
     recordsList.innerHTML = "";
     recordsList.appendChild(fragment);
   }
+
+  // EVENT LISTENERS
+
+  sensorInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      updateFieldState(input);
+      hideError();
+    });
+  });
+
+  sensorForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    sensorInputs.forEach(updateFieldState);
+    const errors = validateInput();
+    if (errors.length) {
+      showError(errors.join(" "));
+      return;
+    }
+    hideError();
+
+    const reading = {
+      id: crypto.randomUUID(),
+      bay: inputBay.value,
+      ph: Number(inputPh.value),
+      ec: Number(inputEc.value),
+      temperature: Number(inputTemp.value),
+      humidity: Number(inputHumidity.value),
+      timestamp: new Date().toISOString(),
+    };
+
+    reading.status = evaluateStatus(
+      reading.ph,
+      reading.temperature,
+      reading.ec,
+      reading.humidity,
+    );
+
+    records.unshift(reading);
+    if (!saveRecords()) {
+      records.shift();
+      return;
+    }
+
+    render();
+    sensorForm.reset();
+    sensorInputs.forEach(updateFieldState);
+    inputBay.focus();
+  });
+
+  recordsList.addEventListener("click", (event) => {
+    const button = event.target.closest("button.btn-delete");
+    if (!button || !recordsList.contains(button)) return;
+    const previous = records;
+    records = records.filter((rec) => rec.id !== button.dataset.id);
+    if (!saveRecords()) {
+      records = previous;
+      return;
+    }
+    render();
+  });
+
+  btnClearAll.addEventListener("click", () => {
+    if (records.length === 0) return;
+    if (!window.confirm("are you sure you want to purge all greenhouse logs?"))
+      return;
+    const previous = records;
+    records = [];
+    if (!saveRecords()) {
+      records = previous;
+      return;
+    }
+
+    hideError();
+    render();
+  });
+
+  render();
 });
