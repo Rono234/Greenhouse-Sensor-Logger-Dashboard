@@ -9,7 +9,7 @@
   <body>
     <!-- Header -->
     <header class="portal-header">
-      <div class="header content">
+      <div class="header-content">
         <div class="brand">
           <span class="brand-icon"></span>
           <h1>Greenhouse Sensor Logger</h1>
@@ -30,7 +30,13 @@
           </p>
         </div>
 
-        <form action="#" id="sensor-form" nonvalidate>
+        <p
+          id="form-error-banner"
+          class="alert alert-danger hidden"
+          role="alert"
+        ></p>
+
+        <form action="#" id="sensor-form" novalidate>
           <div class="form-group">
             <label for="bay" class="form-label"
               >Greenhouse Bay <span class="required">*</span></label
@@ -156,19 +162,21 @@
         </header>
 
         <div class="legend">
-            <span><i class="legend-dot optimal"></i> Optimal</span>
-            <span><i class="legend-dot warning"></i> Warning</span>
-            <span><i class="legend-dot critical"></i> Critial Hazard</span>
+          <span><i class="legend-dot optimal"></i> Optimal</span>
+          <span><i class="legend-dot warning"></i> Warning</span>
+          <span><i class="legend-dot critical"></i> Critial Hazard</span>
         </div>
 
         <div id="empty-state" class="empty-state">
-            <span class="empty-icon">🌱</span>
-            <h3>No Readings Recorded Yet</h3>
-            <p>Complete the sensor form to begin monitoring your greenhouse enviorment.</p>
+          <span class="empty-icon">🌱</span>
+          <h3>No Readings Recorded Yet</h3>
+          <p>
+            Complete the sensor form to begin monitoring your greenhouse
+            enviorment.
+          </p>
         </div>
 
         <ul id="records-list" class="records-grid" aria-live="polite"></ul>
-
       </section>
     </main>
 
@@ -176,5 +184,6 @@
     <footer class="portal-footer">
       <p>2026 Green House Sensor Logger CSI_3150</p>
     </footer>
+    <script src="app.js" defer></script>
   </body>
 </html>
