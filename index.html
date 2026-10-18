@@ -22,13 +22,128 @@
 
     <!-- Main -->
     <main class="portal-container">
-      <section class="panel form-panel"></section>
+      <section class="panel form-panel">
+        <div class="panel-heading">
+          <h2 id="form-title" class="panel-title">Record Sensor Readings</h2>
+          <p class="panel-description">
+            Log enviormental measurements for a greenhouse bay
+          </p>
+        </div>
+
+        <form action="#" id="sensor-form" nonvalidate>
+          <div class="form-group">
+            <label for="bay" class="form-label"
+              >Greenhouse Bay <span class="required">*</span></label
+            >
+            <select name="bay" id="bay" class="form-control" required>
+              <option value="">select a greenhouse bay</option>
+              <option value="A">Bay A</option>
+              <option value="B">Bay B</option>
+              <option value="C">Bay C</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ph" class="form-label"
+                >pH Level <span class="required">*</span></label
+              >
+
+              <input
+                type="number"
+                name="ph"
+                id="ph"
+                class="form-control"
+                min="0"
+                max="14"
+                step="any"
+                placeholder="e.g. 6.0"
+                required
+              />
+              <small id="ph-hint" class="field-hint">
+                Optimal: 5.5 - 6.5 | Valid: 0 - 14
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="ec" class="form-label">
+                EC <span class="unit">(mS/cm)</span>
+                <span class="required">*</span>
+              </label>
+
+              <input
+                type="number"
+                name="ec"
+                id="ec"
+                class="form-control"
+                min="0"
+                step="any"
+                placeholder="e.g. 1.5"
+                required
+              />
+              <small id="ec-hint" class="field-hint">
+                Optimal: 1.0 - 2.0 mS/cm
+              </small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="temp" class="form-label">
+                Air Temperature <span class="unit">(°F)</span>
+                <span class="required">*</span>
+              </label>
+              <input
+                type="number"
+                name="temp"
+                id="temp"
+                class="form-control"
+                step="any"
+                placeholder="e.g. 68.0"
+                required
+              />
+              <small id="temp-hint" class="field-hint">
+                Optimal: 64.4 - 71.6 °F
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="humidity" class="form-label">
+                Relative Humidity <span class="unit">(%)</span>
+                <span class="required">*</span>
+              </label>
+              <input
+                type="number"
+                name="humidity"
+                id="humidity"
+                class="form-control"
+                min="0"
+                max="100"
+                step="any"
+                placeholder="e.g. 60"
+                required
+              />
+              <small id="humidity-hint" class="field-hint">
+                Optimal: 50 - 70%
+              </small>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="btn-submit"
+            class="btn btn-primary btn-block"
+          >
+            Record Reading
+          </button>
+        </form>
+      </section>
       <section class="panel records-panel"></section>
     </main>
 
     <!-- Footer -->
     <footer class="portal-footer">
-        <p> 2026 Green House Sensor Logger CSI_3150</p>
+      <p>2026 Green House Sensor Logger CSI_3150</p>
     </footer>
   </body>
 </html>
