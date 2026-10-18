@@ -69,8 +69,130 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
       return true;
     } catch (error) {
-        console.error("Failed to save greeen house logs:", error); 
-        return false;
+      console.error("Failed to save greeen house logs:", error);
+      return false;
     }
+  }
+
+  /*
+● Critical
+    (pH < 5.0 OR pH > 7.5) AND (Temp < 55F OR Temp > 95F) AND (EC < 0.2 OR EC > 4.5 ) AND (RH < 30 OR RH > 90 )
+● Optimal
+    (5.5 <= pH <= 6.5) AND (64.4F <= Temp <= 71.6F) AND (1.0 <= EC <= 2.0) AND (50 <= RH <= 70)
+● Warning
+    (NOT Critical) AND (NOT Optimal) */
+
+  function evaluateStatus(ph, temp, ec, humidity) {
+    const critical =
+      (ph < 5 || ph > 7.5) &&
+      (temp < 55 || temp > 95) &&
+      (ec < 0.2 || ec > 4.5) &&
+      (humidity < 30 || humidity > 90);
+
+    const optimal =
+      ph >= 5.5 &&
+      ph <= 6.5 &&
+      temp >= 64.4 &&
+      temp <= 71.6 &&
+      ec >= 1 &&
+      ec <= 2 &&
+      humidity >= 50 &&
+      humidity <= 70;
+
+    if (critical) return { level: "critical", label: "Critical Hazard" };
+    if (optimal) return { level: "optimal", label: "Optimal" };
+    return { level: "warning", label: "Warning" };
+  }
+
+  function validateInput() {
+    const errors = [];
+    if (!inputBay.value) errors.push("select a greenhouse bay.");
+    for (const input of sensorInputs) {
+      const value = Number(input.value);
+      if (
+        !input.value.trim() ||
+        !Number.isFinite(value) ||
+        input.validity.valid
+      ) {
+        errors.push(
+          `Enter a valid ${limits[input.id].label} reading${input.id === "ph" ? "(0 to 14) " : input.id === "humidity" ? " (0 to 100)" : input.id === "ec" ? " (0 or greater)" : ""} `,
+        );
+      }
+    }
+    return errors;
+  }
+
+  //   add a function for instant feedback
+
+  function render() {
+    queueCount.textContent = records.length;
+    btnClearAll.disabled = records.length === 0;
+
+    if (records.length === 0) {
+      emptyState.classList.remove("hidden");
+      recordsList.innerHTML = "";
+      return;
+    }
+
+    emptyState.classList.add("hidden");
+
+    const fragment = document.createDocumentFragment();
+
+    records.forEach(function (rec) {
+      const li = document.createElement("li");
+      li.className = "record-card status-" + rec.status.level;
+
+      li.innerHTML = `
+        <div class="card-top">
+        <div class="card-header">
+          <div>
+            <h3 class="bay-name">Bay ${escapeHTML(rec.bay)}</h3>
+            <div class="timestamp">
+              Logged at: ${escapeHTML(rec.timestamp)}
+            </div>
+          </div>
+
+          <span class="status-badge ${rec.status.level}">
+            ${escapeHTML(rec.status.label)}
+          </span>
+        </div>
+
+        <div class="sensor-stats">
+          <div class="stat-item">
+            <span>pH Level</span>
+            <strong>${rec.ph}</strong>
+          </div>
+
+          <div class="stat-item">
+            <span>EC</span>
+            <strong>${rec.ec} mS/cm</strong>
+          </div>
+
+          <div class="stat-item">
+            <span>Air Temperature</span>
+            <strong>${rec.temp} °F</strong>
+          </div>
+
+          <div class="stat-item">
+            <span>Relative Humidity</span>
+            <strong>${rec.humidity}%</strong>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-outline-danger btn-sm btn-delete"
+          data-id="${escapeHTML(rec.id)}">
+          Delete Reading
+        </button>
+      </div>
+        
+        `;
+
+      fragment.appendChild(li);
+    });
+
+    recordsList.innerHTML = "";
+    recordsList.appendChild(fragment);
   }
 });
