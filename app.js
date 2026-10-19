@@ -53,13 +53,54 @@
   const sensorInputs = [inputPh, inputEc, inputTemp, inputHumidity];
   let records = loadRecords();
 
+  function normalizeRecord(record) {
+    if (!record || typeof record !== "object") return null;
+
+    const bay = String(record.bay || "").toUpperCase();
+    const ph = Number(record.ph);
+    const ec = Number(record.ec);
+    const temperature = Number(record.temperature ?? record.temp);
+    const humidity = Number(record.humidity);
+
+    if (
+      !["A", "B", "C"].includes(bay) ||
+      !Number.isFinite(ph) ||
+      ph < 0 ||
+      ph > 14 ||
+      !Number.isFinite(ec) ||
+      ec < 0 ||
+      !Number.isFinite(temperature) ||
+      !Number.isFinite(humidity) ||
+      humidity < 0 ||
+      humidity > 100
+    ) {
+      return null;
+    }
+
+    const timestamp = new Date(record.timestamp);
+    return {
+      id: typeof record.id === "string" ? record.id : createId(),
+      bay,
+      ph,
+      ec,
+      temperature,
+      humidity,
+      timestamp: Number.isNaN(timestamp.getTime())
+        ? new Date().toISOString()
+        : timestamp.toISOString(),
+      status: evaluateStatus(ph, temperature, ec, humidity),
+    };
+  }
+
   function loadRecords() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed)
+        ? parsed.map(normalizeRecord).filter(Boolean)
+        : [];
     } catch (error) {
-      console.error("failed to load Greenhouse logs:", error);
+      console.error("Failed to load greenhouse logs:", error);
       return [];
     }
   }
@@ -69,9 +110,41 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
       return true;
     } catch (error) {
-      console.error("Failed to save greeen house logs:", error);
+      console.error("Failed to save greenhouse logs:", error);
       return false;
     }
+  }
+
+  function createId() {
+    return (
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+  }
+
+  function escapeHTML(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value);
+    return element.innerHTML;
+  }
+
+  function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime())
+      ? "Unknown time"
+      : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  function showError(message) {
+    const banner = document.getElementById("form-error-banner");
+    banner.textContent = message;
+    banner.classList.remove("hidden");
+  }
+
+  function hideError() {
+    const banner = document.getElementById("form-error-banner");
+    banner.textContent = "";
+    banner.classList.add("hidden");
   }
 
   /*
@@ -112,10 +185,10 @@
       if (
         !input.value.trim() ||
         !Number.isFinite(value) ||
-        input.validity.valid
+        !input.validity.valid
       ) {
         errors.push(
-          `Enter a valid ${limits[input.id].label} reading${input.id === "ph" ? "(0 to 14) " : input.id === "humidity" ? " (0 to 100)" : input.id === "ec" ? " (0 or greater)" : ""} `,
+          `Enter a valid ${limits[input.id].label} reading${input.id === "ph" ? " (0 to 14)." : input.id === "humidity" ? " (0 to 100)." : input.id === "ec" ? " (0 or greater)." : "."}`,
         );
       }
     }
@@ -172,11 +245,10 @@
 
       li.innerHTML = `
         <div class="card-top">
-        <div class="card-header">
           <div>
             <h3 class="bay-name">Bay ${escapeHTML(rec.bay)}</h3>
             <div class="timestamp">
-              Logged at: ${escapeHTML(rec.timestamp)}
+              Logged at: ${escapeHTML(formatTimestamp(rec.timestamp))}
             </div>
           </div>
 
@@ -188,34 +260,35 @@
         <div class="sensor-stats">
           <div class="stat-item">
             <span>pH Level</span>
-            <strong>${rec.ph}</strong>
+            <strong>${escapeHTML(rec.ph)}</strong>
           </div>
 
           <div class="stat-item">
             <span>EC</span>
-            <strong>${rec.ec} mS/cm</strong>
+            <strong>${escapeHTML(rec.ec)} mS/cm</strong>
           </div>
 
           <div class="stat-item">
             <span>Air Temperature</span>
-            <strong>${rec.temp} °F</strong>
+            <strong>${escapeHTML(rec.temperature)} °F</strong>
           </div>
 
           <div class="stat-item">
             <span>Relative Humidity</span>
-            <strong>${rec.humidity}%</strong>
+            <strong>${escapeHTML(rec.humidity)}%</strong>
           </div>
         </div>
 
-        <button
-          type="button"
-          class="btn btn-outline-danger btn-sm btn-delete"
-          data-id="${escapeHTML(rec.id)}">
-          Delete Reading
-        </button>
-      </div>
-        
-        `;
+        <div class="record-actions">
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm btn-delete"
+            data-id="${escapeHTML(rec.id)}"
+            aria-label="Delete reading for Bay ${escapeHTML(rec.bay)}">
+            Delete Reading
+          </button>
+        </div>
+      `;
 
       fragment.appendChild(li);
     });
@@ -233,6 +306,8 @@
     });
   });
 
+  inputBay.addEventListener("change", hideError);
+
   sensorForm.addEventListener("submit", (event) => {
     event.preventDefault();
     sensorInputs.forEach(updateFieldState);
@@ -244,7 +319,7 @@
     hideError();
 
     const reading = {
-      id: crypto.randomUUID(),
+      id: createId(),
       bay: inputBay.value,
       ph: Number(inputPh.value),
       ec: Number(inputEc.value),
@@ -263,6 +338,9 @@
     records.unshift(reading);
     if (!saveRecords()) {
       records.shift();
+      showError(
+        "The reading could not be saved. Check your browser storage settings and try again.",
+      );
       return;
     }
 
@@ -279,6 +357,9 @@
     records = records.filter((rec) => rec.id !== button.dataset.id);
     if (!saveRecords()) {
       records = previous;
+      showError(
+        "The reading could not be deleted. Check your browser storage settings and try again.",
+      );
       return;
     }
     render();
@@ -286,12 +367,15 @@
 
   btnClearAll.addEventListener("click", () => {
     if (records.length === 0) return;
-    if (!window.confirm("are you sure you want to purge all greenhouse logs?"))
+    if (!window.confirm("Are you sure you want to purge all greenhouse logs?"))
       return;
     const previous = records;
     records = [];
     if (!saveRecords()) {
       records = previous;
+      showError(
+        "The logs could not be cleared. Check your browser storage settings and try again.",
+      );
       return;
     }
 
@@ -300,4 +384,4 @@
   });
 
   render();
-});
+})();
